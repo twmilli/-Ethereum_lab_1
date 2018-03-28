@@ -37,7 +37,7 @@ contract Betting {
 
     /* Add any events you think are necessary */
     event BetMade(address gambler);
-    event BetClosed();
+    event BetClosed;
 
     /* Uh Oh, what are these? */
     modifier ownerOnly() {
@@ -55,6 +55,7 @@ contract Betting {
 
     /* Owner chooses their trusted Oracle */
     function chooseOracle(address _oracle) public ownerOnly() returns (address) {
+      require(_oracle != gamblerA && oracle != gamblerB);
       oracle = _oracle;
     }
 
@@ -67,11 +68,11 @@ contract Betting {
       }
       else{
         gamblerB = msg.sender;
-        emit BetClosed();
+        BetClosed();
       }
       Bet bet = Bet(_outcome, msg.value, true);
       bets[msg.sender] = bet;
-      emit BetMade(msg.sender);
+      BetMade(msg.sender);
       return true;
     }
 
@@ -86,21 +87,24 @@ contract Betting {
       total = bets[gamblerA] + bets[gamblerB];
       if (bets[gamblerA].outcome == _outcome) {
         winnings[gamblerA] = total;
-      } else if (bets[gamblerB.outcome] == _outcome) {
+      } else if (bets[gamblerB].outcome == _outcome) {
         winnings[gamblerB] = total;
       } else {
         winnings[oracle] = total;
       }
+      contractReset();
+    }
 
     /* Allow anyone to withdraw their winnings safely (if they have enough) */
     function withdraw(uint withdrawAmount) public returns (uint) {
-      require(winnings[msg.sender] > withdrawAmount);
+      require(winnings[msg.sender] >= withdrawAmount);
       winnings[msg.sender] = winnings[msg.sender] - withdrawAmount;
       msg.sender.send(withdrawAmount);
     }
 
     /* Allow anyone to check the outcomes they can bet on */
     function checkOutcomes(uint outcome) public view returns (uint) {
+      return outcomes[outcome];
     }
 
     /* Allow anyone to check if they won any bets */
@@ -110,7 +114,9 @@ contract Betting {
 
     /* Call delete() to reset certain state variables. Which ones? That's upto you to decide */
     function contractReset() public ownerOnly() {
-      gamblerA = 0;
-      gamblerB = 0;
+      delete gamblerA;
+      delete gamblerB;
+      delete bets[gamblerA];
+      delete bests[gamblerB];
     }
 }
